@@ -1,15 +1,15 @@
-Program mon_program
+Program mon_program 
     PDEC
         @define Pint pi = -3.14;
         x : Pfloat;
         y : Pint;
-        z | w | barhoma : Pint;//$
+        z | w | barhoma : Pint;$
         PINST
-        Begin//@
+        Begin@
             /* la vie en rose
 
             */
-            //^
+            ^
 
             x <-- 25.25;
             y <-- 811;
@@ -17,6 +17,6 @@ Program mon_program
             w <-- 7;
 
             DO i<--(-5); : IF (j==-2) // commentiiiing
-
-            barhoma <-- z-2;
+            ENDIF
+            barhoma <-- (z-2)*(-53)*(-2)*(-8);
         End

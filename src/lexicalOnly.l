@@ -39,6 +39,7 @@ DO {printf("DO keyword detected\n"); numCol+=yyleng;}
 ENDFOR {printf("ENDFOR keyword detected\n"); numCol+=yyleng;}
 IF {printf("IF keyword detected\n"); numCol+=yyleng;}
 ELSE {printf("ELSE keyword detected\n"); numCol+=yyleng;}
+ENDIF {printf("ENDIF keyword detected\n"); numCol+=yyleng;}
 
 "@define" {printf("define keyword detected\n"); numCol+=yyleng;}
 Pint {printf("Pint keyword was detected\n"); numCol+=yyleng;}

@@ -50,19 +50,20 @@
      ENDFOR = 266,
      IF = 267,
      ELSE = 268,
-     define = 269,
-     Pint = 270,
-     Pfloat = 271,
-     GRT = 272,
-     GRT_EQ = 273,
-     EQ = 274,
-     NOT_EQ = 275,
-     LESS_EQ = 276,
-     LESS = 277,
-     ASSIGN = 278,
-     IDF = 279,
-     PintVal = 280,
-     PfloatVal = 281
+     ENDIF = 269,
+     define = 270,
+     Pint = 271,
+     Pfloat = 272,
+     GRT = 273,
+     GRT_EQ = 274,
+     EQ = 275,
+     NOT_EQ = 276,
+     LESS_EQ = 277,
+     LESS = 278,
+     ASSIGN = 279,
+     IDF = 280,
+     PintVal = 281,
+     PfloatVal = 282
    };
 #endif
 
@@ -73,7 +74,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 20 "syntax.y"
+#line 23 "syntax.y"
 
 int pint;
 float pfloat;
@@ -82,7 +83,7 @@ char* string;
 
 
 /* Line 1676 of yacc.c  */
-#line 86 "syntax.tab.h"
+#line 87 "syntax.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

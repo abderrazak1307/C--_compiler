@@ -42,6 +42,7 @@ DO {numCol+=yyleng; return DO;}
 ENDFOR {numCol+=yyleng; return ENDFOR;}
 IF {numCol+=yyleng; return IF;}
 ELSE {numCol+=yyleng; return ELSE;}
+ENDIF {numCol+=yyleng; return ENDIF;}
 
 "@define" {numCol+=yyleng; return define;}
 Pint {numCol+=yyleng; return Pint;}
