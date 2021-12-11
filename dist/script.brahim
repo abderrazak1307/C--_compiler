@@ -1,22 +1,28 @@
 Program mon_program 
     PDEC
-        @define Pint pi = -3.14;
+        @define Pfloat pi = 3.14;
+        @define Pint pi2 = 3;
+        @define Pfloat pi3 = 3;
+        @define Pint pi4 = 3.14;
         x : Pfloat;
+        x : Pint;
         y : Pint;
-        z | w | barhoma : Pint;$
+        i | j : Pint;
+        z | w | barhoma : Pint;
         PINST
-        Begin@
+        Begin//@
             /* la vie en rose
-
+                hold me close and hold me fast, this magic spell you cast, this is la vie en rose
             */
-            ^
+            
 
-            x <-- 25.25;
-            y <-- 811;
-            z <-- 13;
-            w <-- 7;
+            x <-- 25.3+2;$
+            y <-- 81*2.1;@
+            z <-- 12;
+            x <-- 7;
+            t <-- 5;
 
-            DO i<--(-5); : IF (j==-2) // commentiiiing
+            DO i<--5.1; : IF (i/2==2) // commentiiiing
             ENDIF
-            barhoma <-- (z-2)*(-53)*(-2)*(-8);
+            x <-- -4.2 / 0.0;
         End

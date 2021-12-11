@@ -52,15 +52,15 @@
      ELSE = 268,
      ENDIF = 269,
      define = 270,
-     Pint = 271,
-     Pfloat = 272,
-     GRT = 273,
-     GRT_EQ = 274,
-     EQ = 275,
-     NOT_EQ = 276,
-     LESS_EQ = 277,
-     LESS = 278,
-     ASSIGN = 279,
+     ASSIGN = 271,
+     Pint = 272,
+     Pfloat = 273,
+     GRT = 274,
+     GRT_EQ = 275,
+     EQ = 276,
+     NOT_EQ = 277,
+     LESS_EQ = 278,
+     LESS = 279,
      IDF = 280,
      PintVal = 281,
      PfloatVal = 282
@@ -74,7 +74,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 23 "syntax.y"
+#line 26 "syntax.y"
 
 int pint;
 float pfloat;

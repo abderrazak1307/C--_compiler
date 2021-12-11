@@ -14,7 +14,6 @@ extern YYSTYPE yylval;
 Pint [0-9]+
 Pfloat {Pint}\.[0-9]+
 IDF ([a-z]([a-z]|[0-9]|_)*([a-z]|[0-9]))|[a-z]
-OP (\+)|(\*)|(\-)|(\/)
 MLCmnt \/\*(.|\n)*\*\/
 Cmnt \/\/.*
 

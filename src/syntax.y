@@ -17,7 +17,10 @@ extern int yylex();
 extern int yytext;
 extern int yyleng;
 
-int decType;
+int decType=0;
+int varRecents=0;
+double lastSavedVal;
+int lastReadVal=0;
 %}
 
 %union {
@@ -26,11 +29,16 @@ float pfloat;
 char* string;
 }
 %start S
-%token Program PDEC PINST Begin End FOR WHILE DO ENDFOR IF ELSE ENDIF define Pint Pfloat
-%token GRT GRT_EQ EQ NOT_EQ LESS_EQ LESS ASSIGN
+%token Program PDEC PINST Begin End FOR WHILE DO ENDFOR IF ELSE ENDIF define ASSIGN Pint Pfloat
+%token GRT GRT_EQ EQ NOT_EQ LESS_EQ LESS
 %token<string> IDF
 %token<pint> PintVal //type==0
 %token<pfloat> PfloatVal //type==1
+
+%type<pint> Expression;
+%type<pint> Val;
+%type<pint> Type;
+%type<pint> Sign;
 
 %left '*' '/'
 %left '+' '-'
@@ -42,58 +50,78 @@ char* string;
 %left '|'
 %%
 S : Program IDF PDEC PartieDeclaration PINST Begin PartieInstructions End {
-    double s = (1000.0*(clock() - start)) / CLOCKS_PER_SEC;
-    printf("\n===== Compilation finished in %.2fms with %d error(s) =====\n", s, numErrors);
+    double duration = (1000.0*(clock() - start)) / CLOCKS_PER_SEC;
+    printf("\n===== Compilation finished in %.2fms with %d error(s) =====\n", duration, numErrors);
+    printf("\nTable des Symboles genere:\n");
     afficher();
+    YYACCEPT;
 };
 
-PartieDeclaration : Declaration {printf("Partie Declaration Done\n");};
+PartieDeclaration : Declaration;
 
-PartieInstructions : Instruction {printf("Partie Instructions Done\n");};
+PartieInstructions : Instruction;
 
-Declaration : define Type IDF '=' Val ';' Declaration {
-                if(rechercher($3) != NULL) printf("ca existe mec deja mec '%s'\n",$3);
-                else insert($3, decType, 1);
-            };
+Declaration : Declaration define Type IDF '=' Val ';' {
+                if(rechercher($4) != NULL) printError(1, $4);
+                else{
+                    if ($3 != $6){
+                        printErrorTypeCompatAffect($4, $3, $6);
+                    }else
+                        insert($4, decType, 1);
+                }
+            }
             | define Type IDF '=' Val ';' {
-                if(rechercher($3) != NULL) printf("ca existe mec deja mec '%s'\n",$3);
-                else insert($3, decType, 1);
-            };
-            | ListeVar ':' Type ';' Declaration
-            | ListeVar ':' Type ';';            
+                if(rechercher($3) != NULL) printError(1, $3);
+                else{
+                    if ($2 != $5){
+                        printErrorTypeCompatAffect($3, $2, $5);
+                    }else
+                        insert($3, decType, 1);
+                }
+            }
+            | Declaration ListeVar ':' Type ';' {
+                MAJRecentVariables(varRecents, decType);
+                varRecents=0;
+            }
+            | ListeVar ':' Type ';' {
+                MAJRecentVariables(varRecents, decType);
+                varRecents=0;
+            };            
 
-ListeVar : IDF '|' ListeVar {
-             if(rechercher($1) != NULL) printf("ca existe mec deja mec '%s'\n",$1);
-             else insert($1, decType, 0);
-         };
+ListeVar : ListeVar '|' IDF {
+             if(rechercher($3) != NULL) printError(1, $3);
+             else{
+                insert($3, 0, 0);
+                varRecents++;
+             }
+         }
          | IDF {
-             if(rechercher($1) != NULL) printf("ca existe deja mec '%s'\n",$1);
-             else insert($1, decType, 0);
+             if(rechercher($1) != NULL) printError(1, $1);
+             else{
+                insert($1, 0, 0);
+                varRecents++;
+             }
          }; 
 
-Instruction : Assignement Instruction 
-     | Assignement
-     | Boucle Instruction
+Instruction : Instruction Assignement ';'
+     | Assignement ';'
+     | Instruction Boucle
      | Boucle
-     | DO_IF_Cond Instruction
+     | Instruction DO_IF_Cond 
      | DO_IF_Cond;
 
-Assignement : IDF ASSIGN Expression ';' {
-             if(rechercher($1) == NULL) printf("ca n'existe pas mec '%s'\n",$1);
-             else if(rechercher($1)->nature == 1) printf("c'est un constant mec '%s'\n",$1);
-         };
+Assignement : IDF ASSIGN Expression  {
+                if(rechercher($1) == NULL)printError(0, $1);
+                else if(rechercher($1)->nature == 1) printError(2, $1);
+                else{
+                    if(rechercher($1)->type!=$3) printErrorTypeCompatAffect(rechercher($1)->nom, rechercher($1)->type, $3);
+                }
+            };
 
-Boucle : FOR IDF ASSIGN Expression WHILE Val DO Instruction ENDFOR;
+Boucle : FOR Assignement WHILE Val DO Instruction ENDFOR;
 
 DO_IF_Cond : DO Instruction ':' IF '(' Condition ')' ENDIF
            | DO Instruction ':' IF '(' Condition ')' ELSE Instruction ENDIF;
-
-Expression : '(' Expression ')'
-    | Expression OP_Arithmitique Expression
-    | IDF {
-        if(rechercher($1) == NULL) printf("ca n'existe pas mec '%s'\n",$1);
-    };
-    | Val;
 
 Condition : '(' Condition ')'
           | '!' Condition
@@ -103,19 +131,63 @@ Condition : '(' Condition ')'
 
 OP_Comparison : EQ | NOT_EQ | GRT | GRT_EQ | LESS | LESS_EQ;
 
-OP_Arithmitique : '+' | '-' | '*' | '/';
+Expression : Val {
+        $$ = $1;
+        lastReadVal = 1;
+    }
+    | IDF {
+        lastReadVal = 0;
+        if(rechercher($1) == NULL){
+            printError(0, $1);
+            $$ = 1;
+        }
+        else $$ = rechercher($1)->type;
+    }
+    | '(' Expression ')' {$$ = $2;}
+    | Sign '(' Expression ')' {$$ = $3;}
+    | Expression '+' Expression {
+        $$ = $1;
+        if($1!=$3) printErrorTypeCompat("+", $1, $3);
+    }
+    | Expression '-' Expression {
+        $$ = $1;
+        if($1!=$3) printErrorTypeCompat("-", $1, $3);
+    }
+    | Expression '*' Expression {
+        $$ = $1;
+        if($1!=$3) printErrorTypeCompat("*", $1, $3);
+    }
+    | Expression '/' Expression {
+        $$ = $1;
+        if($1!=$3) printErrorTypeCompat("/", $1, $3);
+        else {
+            if(lastSavedVal==0 && lastReadVal==1){
+                printError(3, "/");
+            }
+        }
+    };
 
-Type : '(' Type ')' 
-     | Pint {
-         decType = 0;
-     }
-     | Pfloat {
-         decType = 1;
-     };
+Type : Pint {$$=0; decType=0;}
+     | Pfloat {$$=1; decType=1;};
 
-Val : '(' Val ')' | Sign PintVal | Sign PfloatVal | PintVal | PfloatVal;
+Val : Sign PintVal {
+        $$ = 0; 
+        lastSavedVal = ($1==0) ? $2 : -$2;
+    }
+    | PintVal {
+        $$ = 0; 
+        lastSavedVal = $1;
+    }
+    | Sign PfloatVal {
+        $$ = 1;
+        lastSavedVal = ($1==0) ? $2 : -$2;
+    }
+    | PfloatVal {
+        $$ = 1;
+        lastSavedVal = $1;
+    };
 
-Sign : '-' | '+';
+Sign : '-' {$$=1;}| '+'{$$=0;};
 
 %%
 int yyerror(char* msg){
