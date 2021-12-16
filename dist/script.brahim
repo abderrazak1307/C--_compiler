@@ -1,11 +1,11 @@
-Program mon_program 
+Program mon_program
     PDEC
-        @define Pfloat pi = 3.14;
+        @define Pfloat pi = -3.14;
         @define Pint pi2 = 3;
         @define Pfloat pi3 = 3;
         @define Pint pi4 = 3.14;
-        x : Pfloat;
         x : Pint;
+        x : Pfloat;
         y : Pint;
         i | j : Pint;
         z | w | barhoma : Pint;
@@ -15,14 +15,14 @@ Program mon_program
                 hold me close and hold me fast, this magic spell you cast, this is la vie en rose
             */
             
-
+            pi <-- 15.2;
             x <-- 25.3+2;$
             y <-- 81*2.1;@
             z <-- 12;
             x <-- 7;
-            t <-- 5;
+            t <-- 5;       
 
-            DO i<--5.1; : IF (i/2==2) // commentiiiing
+            DO i<--5.1 : IF (2.0==2) // commentiiiing
             ENDIF
             x <-- -4.2 / 0.0;
         End

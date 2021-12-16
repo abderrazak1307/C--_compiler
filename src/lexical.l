@@ -16,7 +16,6 @@ Pfloat {Pint}\.[0-9]+
 IDF ([a-z]([a-z]|[0-9]|_)*([a-z]|[0-9]))|[a-z]
 MLCmnt \/\*(.|\n)*\*\/
 Cmnt \/\/.*
-
 %%
 {Cmnt} {numCol+=yyleng;}
 {MLCmnt} {
@@ -29,7 +28,6 @@ Cmnt \/\/.*
         }
     }
 }
-
 Program {numCol+=yyleng; return Program;}
 PDEC {numCol+=yyleng; return PDEC;}
 PINST {numCol+=yyleng; return PINST;}
@@ -42,11 +40,9 @@ ENDFOR {numCol+=yyleng; return ENDFOR;}
 IF {numCol+=yyleng; return IF;}
 ELSE {numCol+=yyleng; return ELSE;}
 ENDIF {numCol+=yyleng; return ENDIF;}
-
 "@define" {numCol+=yyleng; return define;}
 Pint {numCol+=yyleng; return Pint;}
 Pfloat {numCol+=yyleng; return Pfloat;}
-
 {IDF} {
     if(yyleng <= 12){
         numCol+=yyleng;
@@ -109,6 +105,7 @@ Pfloat {numCol+=yyleng; return Pfloat;}
 \n {numLn++; numCol=1;}
 . {
     printf("LexicalError, Ln %d, Col %d: token '%s' not recognised.\n", numLn, numCol, yytext);
+    numCol+=yyleng;
     numErrors++;
 }
 %%
