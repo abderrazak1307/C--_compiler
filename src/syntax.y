@@ -4,9 +4,11 @@
 #include <time.h>
 
 clock_t start;
+FILE* inputStream;
 
 extern int numLn;
 extern int numCol;
+extern int savedNumCol;
 extern int numErrors;
 extern FILE* yyin;
 
@@ -17,9 +19,10 @@ extern int yyleng;
 
 extern int decType;
 extern int varRecents;
-extern double lastSavedVal;
-extern int lastReadVal;
+extern double savedVal;
+extern int isLastReadAVal;
 %}
+%locations
 %union {
 int pint;
 float pfloat;
@@ -27,16 +30,15 @@ char* string;
 char caractere;
 }
 %start S
+
 %token Program PDEC PINST Begin End FOR WHILE DO ENDFOR IF ELSE ENDIF define ASSIGN Pint Pfloat GRT GRT_EQ EQ NOT_EQ LESS_EQ LESS
 %token<string> IDF
 %token<pint> PintVal //type==0
 %token<pfloat> PfloatVal //type==1
 
-%type<pint> Expression;
-%type<pint> Val;
-%type<pint> Type;
+%type<string> OP_Comparison '+' '-' '*' '/' '=' ASSIGN;
 %type<caractere> Sign;
-%type<string> OP_Comparison;
+%type<pint> Expression Val Type;
 
 %left '*' '/'
 %left '+' '-'
@@ -59,11 +61,19 @@ PartieDeclaration : Declaration;
 PartieInstructions : Instruction;
 
 Declaration : Declaration define Type IDF '=' Val ';' {
-                if(checkNoDoubleDeclaration($4) && checkTypeCompatAffect($4, $3, $6))
+                savedNumCol = @4.first_column;
+                if(!checkNoDoubleDeclaration($4)) return 1;
+
+                savedNumCol = @5.first_column;
+                if(checkTypeCompatAffect($4, $3, $6, "="))
                     insert($4, decType, 1);
             }
             | define Type IDF '=' Val ';' {
-                if(checkNoDoubleDeclaration($3) && checkTypeCompatAffect($3, $2, $5))
+                savedNumCol = @3.first_column;
+                if(!checkNoDoubleDeclaration($3)) return 1;
+
+                savedNumCol = @4.first_column;
+                if(checkTypeCompatAffect($3, $2, $5, "="))
                     insert($3, decType, 1);
             }
             | Declaration ListeVar ':' Type ';' {
@@ -76,16 +86,18 @@ Declaration : Declaration define Type IDF '=' Val ';' {
             };            
 
 ListeVar : ListeVar '|' IDF {
-             if(checkNoDoubleDeclaration($3)){
+            savedNumCol = @3.first_column;
+            if(checkNoDoubleDeclaration($3)){
                 insert($3, 0, 0);
                 varRecents++;
-             }
+            }
          }
          | IDF {
-             if(checkNoDoubleDeclaration($1)){
+            savedNumCol = @1.first_column;
+            if(checkNoDoubleDeclaration($1)){
                 insert($1, 0, 0);
                 varRecents++;
-             }
+            }
          }; 
 
 Instruction : Instruction Assignement ';'
@@ -96,9 +108,11 @@ Instruction : Instruction Assignement ';'
      | DO_IF_Cond;
 
 Assignement : IDF ASSIGN Expression  {
+                savedNumCol = @1.first_column;
                 if(checkIsDeclared($1)){
+                    savedNumCol = @2.first_column;
                     checkNotReassigningConstant($1);
-                    checkTypeCompatAffect($1, rechercher($1)->type, $3);
+                    checkTypeCompatAffect($1, rechercher($1)->type, $3, "<--");
                 }
             };
 
@@ -116,6 +130,7 @@ Condition : '(' Condition ')'
           | Condition '&' Condition
           | Condition '|' Condition
           | Expression OP_Comparison Expression  {
+              savedNumCol = @2.first_column;
               checkTypeCompat($1, $2, $3);
           }
 
@@ -123,10 +138,11 @@ OP_Comparison : EQ {$$="=="}| NOT_EQ {$$="!="}| GRT {$$=">"}| GRT_EQ {$$=">="}| 
 
 Expression : Val {
         $$ = $1;
-        lastReadVal = 1;
+        isLastReadAVal = 1;
     }
     | IDF {
-        lastReadVal = 0;
+        isLastReadAVal = 0;
+        savedNumCol = @1.first_column;
         if(checkIsDeclared($1))
             $$ = rechercher($1)->type;
     }
@@ -134,18 +150,22 @@ Expression : Val {
     | Sign '(' Expression ')' {$$ = $3;}
     | Expression '+' Expression {
         $$ = $1;
+        savedNumCol = @2.first_column;
         checkTypeCompat($1, "+", $3);
     }
     | Expression '-' Expression {
         $$ = $1;
+        savedNumCol = @2.first_column;
         checkTypeCompat($1, "-", $3);
     }
     | Expression '*' Expression {
         $$ = $1;
+        savedNumCol = @2.first_column;
         checkTypeCompat($1, "*", $3);
     }
     | Expression '/' Expression {
         $$ = $1;
+        savedNumCol = @2.first_column;
         checkTypeCompat($1, "/", $3);
         checkNoDivisionByZero();
     };
@@ -155,19 +175,19 @@ Type : Pint {$$=0; decType=0;}
 
 Val : Sign PintVal {
         $$ = 0; 
-        lastSavedVal = ($1=='+') ? $2 : -$2;
+        savedVal = ($1=='+') ? $2 : -$2;
     }
     | PintVal {
         $$ = 0; 
-        lastSavedVal = $1;
+        savedVal = $1;
     }
     | Sign PfloatVal {
         $$ = 1;
-        lastSavedVal = ($1=='+') ? $2 : -$2;
+        savedVal = ($1=='+') ? $2 : -$2;
     }
     | PfloatVal {
         $$ = 1;
-        lastSavedVal = $1;
+        savedVal = $1;
     };
 
 Sign : '-' {$$='-';}| '+'{$$='+';};
@@ -183,8 +203,13 @@ int yyerror(char* msg){
 int main( int argc, char *argv[] ){
     start = clock();
 
-    if (argc > 1) yyin = fopen( argv[1], "r" );
-    else yyin = stdin;
+    if (argc > 1) {
+        inputStream = fopen(argv[1], "r");
+        yyin = fopen( argv[1], "r" );
+    }else{
+        inputStream = stdin;
+        yyin = stdin;
+    }
 
     yyparse();
     return 0;

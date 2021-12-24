@@ -1,14 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define HighlightErrors 1
+
 extern int numLn;
 extern int numCol;
 extern int numErrors;
+extern FILE* inputStream;
 
+int savedNumCol=1;
 int decType=0;
 int varRecents=0;
-double lastSavedVal;
-int lastReadVal=0;
+double savedVal;
+int isLastReadAVal=0;
 
 // 1- Déclarer une structure de données « élément »
 typedef struct element *list;
@@ -71,10 +75,14 @@ void afficher(){
         p = p->svt;
     }
 }
+
+void showLineHighlightError(int ln, int col);
+
 int checkNoDoubleDeclaration(char* variable){
     if(rechercher(variable) != NULL){
         numErrors++;
-        printf("SemanticError, Ln %d, Col %d: '%s' was already declared in this scope\n", numLn, numCol, variable);
+        printf("SemanticError, Ln %d, Col %d: '%s' was already declared in this scope\n", numLn, savedNumCol, variable);
+        showLineHighlightError(numLn, savedNumCol);
         return 0;
     }
     return 1;
@@ -82,7 +90,8 @@ int checkNoDoubleDeclaration(char* variable){
 int checkNotReassigningConstant(char* variable){
     if(rechercher(variable)->nature == 1){
         numErrors++;
-        printf("SemanticError, Ln %d, Col %d: Assignement of constant variable '%s'\n", numLn, numCol, variable);
+        printf("SemanticError, Ln %d, Col %d: Assignement of constant variable '%s'\n", numLn, savedNumCol, variable);
+        showLineHighlightError(numLn, savedNumCol);
         return 0;
     }
     return 1;
@@ -90,7 +99,8 @@ int checkNotReassigningConstant(char* variable){
 int checkIsDeclared(char* variable){
     if(rechercher(variable) == NULL){
         numErrors++;
-        printf("SemanticError, Ln %d, Col %d: '%s' was not declared in this scope\n", numLn, numCol, variable);
+        printf("SemanticError, Ln %d, Col %d: '%s' was not declared in this scope\n", numLn, savedNumCol, variable);
+        showLineHighlightError(numLn, savedNumCol);
         return 0;
     }
     return 1;
@@ -98,23 +108,26 @@ int checkIsDeclared(char* variable){
 int checkTypeCompat(int type, char* token, int type2){
     if(type != type2){
         numErrors++;
-        printf("SemanticError, Ln %d, Col %d: Type incompatibality, %s %s %s\n", numLn, numCol, type==0?"Pint":"Pfloat", token, type2==0?"Pint":"Pfloat");
+        printf("SemanticError, Ln %d, Col %d: Type incompatibality, %s %s %s\n", numLn, savedNumCol, type==0?"Pint":"Pfloat", token, type2==0?"Pint":"Pfloat");
+        showLineHighlightError(numLn, savedNumCol);
         return 0;
     }
     return 1;
 }
-int checkTypeCompatAffect(char* variable, int type, int type2){
+int checkTypeCompatAffect(char* variable, int type, int type2, char* op){
     if(type != type2){
         numErrors++;
-        printf("SemanticError, Ln %d, Col %d: Type incompatibality, %s(%s) <-- %s\n", numLn, numCol, variable, type==0?"Pint":"Pfloat", type2==0?"Pint":"Pfloat");
+        printf("SemanticError, Ln %d, Col %d: Type incompatibality, %s(%s) %s %s\n", numLn, savedNumCol, variable, type==0?"Pint":"Pfloat", op, type2==0?"Pint":"Pfloat");
+        showLineHighlightError(numLn, savedNumCol);
         return 0;
     }
     return 1;
 }
 int checkNoDivisionByZero(){
-    if(lastSavedVal==0 && lastReadVal==1){
+    if(savedVal==0 && isLastReadAVal==1){
         numErrors++;
-        printf("SemanticError, Ln %d, Col %d: Division by zero not allowed\n", numLn, numCol);
+        printf("SemanticError, Ln %d, Col %d: Division by zero not allowed\n", numLn, savedNumCol);
+        showLineHighlightError(numLn, savedNumCol);
         return 0;
     }
     return 1;
@@ -131,6 +144,31 @@ void MAJRecentVariables(int varRecents, int decType){
     }
 }
 
+char currentLineBuffer[256];
+int currentLine=1;
+int currentLineLength=0;
+int x=0;
 void showLineHighlightError(int ln, int col){
+    if(HighlightErrors == 0 || inputStream == NULL) return;
 
+    while(currentLine <= ln){
+        char c;
+        while ((c = fgetc(inputStream)) != EOF && currentLine<=ln){
+            if(c=='\n'){
+                currentLine++;
+                currentLineLength = x;
+                x = 0;
+                break;
+            }else{
+                currentLineBuffer[x++] = (char)c;
+            }
+        }
+    }
+
+    for(int i = 0; i < currentLineLength; i++)
+        printf("%c", currentLineBuffer[i]);
+    printf("\n");
+    for(int i = 0; i < col - 1; i++)
+        printf("_");
+    printf("^\n\n");
 }

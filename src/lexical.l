@@ -1,15 +1,25 @@
 %{
 #include <stdio.h>
-#include <math.h>
 #include <string.h>
+#include <math.h>
 #include "syntax.tab.h"
+
+#define INCREMENT_NumCol numCol += yyleng
 
 int numLn=1;
 int numCol=0;
 int numErrors=0;
-int isTwoDecimals(char* str);
 
+int isTwoDecimals(char* str);
+extern void showLineHighlightError(int ln, int col);
+
+extern YYLTYPE yylloc;
 extern YYSTYPE yylval;
+// on definie a USER_ACTION qui s'éxecute aprés la lecture de chaque entité
+// et cela pour garder debut et fin de chaque entité dans @n dans les régles de grammaires
+#define YY_USER_ACTION\
+  yylloc.first_column = yylloc.last_column;\
+  yylloc.last_column += yyleng;
 %}
 Pint [0-9]+
 Pfloat {Pint}\.[0-9]+
@@ -17,7 +27,7 @@ IDF ([a-z]([a-z]|[0-9]|_)*([a-z]|[0-9]))|[a-z]
 MLCmnt \/\*(.|\n)*\*\/
 Cmnt \/\/.*
 %%
-{Cmnt} {numCol+=yyleng;}
+{Cmnt} {INCREMENT_NumCol;}
 {MLCmnt} {
     for(int i=0; i<yyleng; i++){
         if(yytext[i]=='\n'){
@@ -28,85 +38,96 @@ Cmnt \/\/.*
         }
     }
 }
-Program {numCol+=yyleng; return Program;}
-PDEC {numCol+=yyleng; return PDEC;}
-PINST {numCol+=yyleng; return PINST;}
-Begin {numCol+=yyleng; return Begin;}
-End {numCol+=yyleng; return End;}
-FOR {numCol+=yyleng; return FOR;}
-WHILE {numCol+=yyleng; return WHILE;}
-DO {numCol+=yyleng; return DO;}
-ENDFOR {numCol+=yyleng; return ENDFOR;}
-IF {numCol+=yyleng; return IF;}
-ELSE {numCol+=yyleng; return ELSE;}
-ENDIF {numCol+=yyleng; return ENDIF;}
-"@define" {numCol+=yyleng; return define;}
-Pint {numCol+=yyleng; return Pint;}
-Pfloat {numCol+=yyleng; return Pfloat;}
+Program {INCREMENT_NumCol; return Program;}
+PDEC {INCREMENT_NumCol; return PDEC;}
+PINST {INCREMENT_NumCol; return PINST;}
+Begin {INCREMENT_NumCol; return Begin;}
+End {INCREMENT_NumCol; return End;}
+FOR {INCREMENT_NumCol; return FOR;}
+WHILE {INCREMENT_NumCol; return WHILE;}
+DO {INCREMENT_NumCol; return DO;}
+ENDFOR {INCREMENT_NumCol; return ENDFOR;}
+IF {INCREMENT_NumCol; return IF;}
+ELSE {INCREMENT_NumCol; return ELSE;}
+ENDIF {INCREMENT_NumCol; return ENDIF;}
+"@define" {INCREMENT_NumCol; return define;}
+Pint {INCREMENT_NumCol; return Pint;}
+Pfloat {INCREMENT_NumCol; return Pfloat;}
 {IDF} {
     if(yyleng <= 12){
-        numCol+=yyleng;
+        INCREMENT_NumCol;
         yylval.string = strdup(yytext);
         return IDF;
     }else{
         printf("LexicalError, Ln %d, Col %d: un identificateur '%s' ne peut pas depasser 12 caracteres.\n", numLn, numCol, yytext);
-        numCol+=yyleng;
+        showLineHighlightError(numLn, numCol);
+        INCREMENT_NumCol;
         numErrors++;
     }
 }
 {Pint} {
     if(atoi(yytext)< -32768 || atoi(yytext) > 32767){
         printf("LexicalError, Ln %d, Col %d: Pint '%s' a depasse l'intervalle de 32bit.\n", numLn, numCol, yytext);
+        showLineHighlightError(numLn, numCol);
+        INCREMENT_NumCol;
         numErrors++;
     }else{
-        numCol+=yyleng;
+        INCREMENT_NumCol;
         yylval.pint = (int)atoi(yytext);
         return PintVal;
     }   
 }
 {Pfloat} {
     if(atof(yytext) < -32768 || atof(yytext) > 32767){
+        numErrors++;
         printf("LexicalError, Ln %d, Col %d: Pfloat '%s' a depasse l'intervalle de 32bit.\n", numLn, numCol, yytext);
-        numErrors++;
+        showLineHighlightError(numLn, numCol);
+        INCREMENT_NumCol;
     }else if(!isTwoDecimals(yytext)){
-        printf("LexicalError, Ln %d, Col %d: Pfloat '%s' ne peut pas avoir plus de 2 chiffres decimaux.\n", numLn, numCol, yytext);
         numErrors++;
+        printf("LexicalError, Ln %d, Col %d: Pfloat '%s' ne peut pas avoir plus de 2 chiffres decimaux.\n", numLn, numCol, yytext);
+        showLineHighlightError(numLn, numCol);
+        INCREMENT_NumCol;
     }else{
-        numCol+=yyleng;
+        INCREMENT_NumCol;
         yylval.pfloat = (float)atof(yytext);
         return PfloatVal;
     }
 }
 
-\( {numCol+=yyleng; return '(';}
-\) {numCol+=yyleng; return ')';}
+\( {INCREMENT_NumCol; return '(';}
+\) {INCREMENT_NumCol; return ')';}
 
-\| {numCol+=yyleng; return '|';}
-\& {numCol+=yyleng; return '&';}
-\! {numCol+=yyleng; return '!';}
+\| {INCREMENT_NumCol; return '|';}
+\& {INCREMENT_NumCol; return '&';}
+\! {INCREMENT_NumCol; return '!';}
 
-\> {numCol+=yyleng; return GRT;}
-\>= {numCol+=yyleng; return GRT_EQ;}
-\== {numCol+=yyleng; return EQ;}
-\!= {numCol+=yyleng; return NOT_EQ;}
-\<= {numCol+=yyleng; return LESS_EQ;}
-\< {numCol+=yyleng; return LESS;}
+\> {INCREMENT_NumCol; return GRT;}
+\>= {INCREMENT_NumCol; return GRT_EQ;}
+\== {INCREMENT_NumCol; return EQ;}
+\!= {INCREMENT_NumCol; return NOT_EQ;}
+\<= {INCREMENT_NumCol; return LESS_EQ;}
+\< {INCREMENT_NumCol; return LESS;}
 
-"<--" {numCol+=yyleng; return ASSIGN;}
-\+ {numCol+=yyleng; return '+';}
-\- {numCol+=yyleng; return '-';}
-\* {numCol+=yyleng; return '*';}
-\/ {numCol+=yyleng; return '/';}
-: {numCol+=yyleng; return ':';}
-; {numCol+=yyleng; return ';';}
-= {numCol+=yyleng; return '=';}
+\<-- {INCREMENT_NumCol; return ASSIGN;}
+\+ {INCREMENT_NumCol; return '+';}
+\- {INCREMENT_NumCol; return '-';}
+\* {INCREMENT_NumCol; return '*';}
+\/ {INCREMENT_NumCol; return '/';}
+: {INCREMENT_NumCol; return ':';}
+; {INCREMENT_NumCol; return ';';}
+= {INCREMENT_NumCol; return '=';}
 
-[ \t]* {numCol+=yyleng;}
-\n {numLn++; numCol=1;}
+[ \t]* {INCREMENT_NumCol;}
+\n {
+    numLn++; numCol = 1;
+    yylloc.first_column = 1; yylloc.last_column = 1;
+}
 . {
-    printf("LexicalError, Ln %d, Col %d: token '%s' not recognised.\n", numLn, numCol, yytext);
-    numCol+=yyleng;
     numErrors++;
+    printf("LexicalError, Ln %d, Col %d: token '%s' not recognised.\n", numLn, numCol, yytext);
+    showLineHighlightError(numLn, numCol);
+    INCREMENT_NumCol;
 }
 %%
 int isTwoDecimals(char* str){
@@ -115,7 +136,4 @@ int isTwoDecimals(char* str){
 
     return v1 == v2;
 }
-
-int yywrap(void){
-    return 0;
-}
+int yywrap(void){ return 0; }
