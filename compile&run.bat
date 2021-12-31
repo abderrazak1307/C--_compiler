@@ -2,7 +2,7 @@ cd src
 flex lexical.l
 bison -d syntax.y
 gcc lex.yy.c syntax.tab.c -o../dist/compiler.exe
-cd..
+cd..\dist
 cls
-dist\compiler.exe dist\script.brahim
+compiler.exe script.bra
 pause();

@@ -9,6 +9,8 @@ Program mon_program
         y : Pint;
         i | j : Pint;
         z | w | barhoma : Pint;
+        //suite_ : Pint;
+        //mohammedbenabdelhadi : Pint;
         PINST
         Begin//@
             /* la vie en rose
@@ -17,12 +19,12 @@ Program mon_program
             
             pi <-- 15.2;
             x <-- 25.3+2;$
-            y <-- 81*2.1;@
+            y <-- 81*2.1;
             z <-- 12;
             x <-- 7;
             t <-- 5;       
 
-            DO i<--5.1 : IF (2.0==2) // commentiiiing
+            DO i<--5 : IF (2.0==2) // commentiiiing
             ENDIF
-            x <-- -4.2 / 0.0;
+            x <-- -4 / 0;
         End

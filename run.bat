@@ -1,2 +1,4 @@
-dist\compiler.exe dist\script.brahim
+cd dist
+cls
+compiler.exe script.bra
 pause();

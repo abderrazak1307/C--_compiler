@@ -1,6 +1,6 @@
 %{
 #include <stdio.h>
-#include "routine.h"
+#include "semantic.h"
 #include <time.h>
 
 clock_t start;
@@ -18,7 +18,6 @@ extern int yytext;
 extern int yyleng;
 
 extern int decType;
-extern int varRecents;
 extern double savedVal;
 extern int isLastReadAVal;
 %}
@@ -27,38 +26,39 @@ extern int isLastReadAVal;
 int pint;
 float pfloat;
 char* string;
-char caractere;
 }
-%start S
 
+%start S
 %token Program PDEC PINST Begin End FOR WHILE DO ENDFOR IF ELSE ENDIF define ASSIGN Pint Pfloat GRT GRT_EQ EQ NOT_EQ LESS_EQ LESS
 %token<string> IDF
 %token<pint> PintVal //type==0
 %token<pfloat> PfloatVal //type==1
 
 %type<string> OP_Comparison '+' '-' '*' '/' '=' ASSIGN;
-%type<caractere> Sign;
-%type<pint> Expression Val Type;
+%type<pint> Expression Val Type Sign;
 
-%left '*' '/'
-%left '+' '-'
+%left '|'
+%left '&'
+%left '!'
 
 %left GRT GRT_EQ EQ NOT_EQ LESS_EQ LESS
 
-%left '!'
-%left '&'
-%left '|'
+%left '+' '-'
+%left '*' '/'
+
 %%
-S : Program IDF PDEC PartieDeclaration PINST Begin PartieInstructions End {
+S : Header PartieDeclaration PartieInstructions {
     double duration = (1000.0*(clock() - start)) / CLOCKS_PER_SEC;
-    printf("\n===== Compilation finished in %.2fms with %d error(s) =====\n", duration, numErrors);
+    printf("===== Compilation finished in %.2fms with %d error(s) =====\n", duration, numErrors);
     afficher();
     YYACCEPT;
 };
 
-PartieDeclaration : Declaration;
+Header : Program IDF;
 
-PartieInstructions : Instruction;
+PartieDeclaration : PDEC Declaration;
+
+PartieInstructions : PINST Begin Instruction End;
 
 Declaration : Declaration define Type IDF '=' Val ';' {
                 savedNumCol = @4.first_column;
@@ -76,28 +76,22 @@ Declaration : Declaration define Type IDF '=' Val ';' {
                 if(checkTypeCompatAffect($3, $2, $5, "="))
                     insert($3, decType, 1);
             }
-            | Declaration ListeVar ':' Type ';' {
-                MAJRecentVariables(varRecents, decType);
-                varRecents=0;
+            | Declaration ListeIdf ':' Type ';' {
+                MAJRecentVariables();
             }
-            | ListeVar ':' Type ';' {
-                MAJRecentVariables(varRecents, decType);
-                varRecents=0;
+            | ListeIdf ':' Type ';' {
+                MAJRecentVariables();
             };            
 
-ListeVar : ListeVar '|' IDF {
+ListeIdf : ListeIdf '|' IDF {
             savedNumCol = @3.first_column;
-            if(checkNoDoubleDeclaration($3)){
+            if(checkNoDoubleDeclaration($3))
                 insert($3, 0, 0);
-                varRecents++;
-            }
          }
          | IDF {
             savedNumCol = @1.first_column;
-            if(checkNoDoubleDeclaration($1)){
+            if(checkNoDoubleDeclaration($1))
                 insert($1, 0, 0);
-                varRecents++;
-            }
          }; 
 
 Instruction : Instruction Assignement ';'
@@ -112,7 +106,7 @@ Assignement : IDF ASSIGN Expression  {
                 if(checkIsDeclared($1)){
                     savedNumCol = @2.first_column;
                     checkNotReassigningConstant($1);
-                    checkTypeCompatAffect($1, rechercher($1)->type, $3, "<--");
+                    checkTypeCompatAffect($1, search($1)->type, $3, "<--");
                 }
             };
 
@@ -144,7 +138,7 @@ Expression : Val {
         isLastReadAVal = 0;
         savedNumCol = @1.first_column;
         if(checkIsDeclared($1))
-            $$ = rechercher($1)->type;
+            $$ = search($1)->type;
     }
     | '(' Expression ')' {$$ = $2;}
     | Sign '(' Expression ')' {$$ = $3;}
@@ -175,7 +169,7 @@ Type : Pint {$$=0; decType=0;}
 
 Val : Sign PintVal {
         $$ = 0; 
-        savedVal = ($1=='+') ? $2 : -$2;
+        savedVal = ($1==0) ? $2 : -$2;
     }
     | PintVal {
         $$ = 0; 
@@ -183,34 +177,33 @@ Val : Sign PintVal {
     }
     | Sign PfloatVal {
         $$ = 1;
-        savedVal = ($1=='+') ? $2 : -$2;
+        savedVal = ($1==0) ? $2 : -$2;
     }
     | PfloatVal {
         $$ = 1;
         savedVal = $1;
     };
 
-Sign : '-' {$$='-';}| '+'{$$='+';};
+Sign : '-' {$$=1;}| '+'{$$=0;};
 
 %%
 int yyerror(char* msg){
     numErrors++;
     double s = (1000.0*(clock() - start)) / CLOCKS_PER_SEC;
-    printf("SyntaxError, Ln %d, Col %d: Unexpected '%s'\n", numLn, numCol-yyleng, yytext);
-    printf("\n===== Compilation stopped in %.2fms with %d error(s) =====\n", s, numErrors);
+    printf("SyntaxError, Ln %d, Col %d: Unexpected '%s'.\n", numLn, numCol-yyleng, yytext);
+    showLineHighlightError(numLn, numCol-yyleng);
+    printf("===== Compilation stopped in %.2fms with %d error(s) =====\n", s, numErrors);
     return 1;
 }
 int main( int argc, char *argv[] ){
     start = clock();
-
-    if (argc > 1) {
-        inputStream = fopen(argv[1], "r");
+    if (argc > 1){
+        inputStream = fopen( argv[1], "r" );
         yyin = fopen( argv[1], "r" );
     }else{
         inputStream = stdin;
         yyin = stdin;
     }
-
     yyparse();
     return 0;
 }

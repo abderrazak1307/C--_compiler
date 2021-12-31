@@ -2,21 +2,23 @@
 #include <stdio.h>
 #include <math.h>
 
+#define INCREMENT_NumCol numCol += yyleng
+
 int numLn=1;
 int numCol=0;
 int numErrors=0;
-int isTwoDecimals(char* str);
 
+int isTwoDecimals(char* str);
 %}
 Pint [0-9]+
 Pfloat {Pint}\.[0-9]+
-IDF ([a-z]([a-z]|[0-9]|_)*([a-z]|[0-9]))|[a-z]
+IDF [a-z]([a-z]|[0-9]|_)*
 OP (\+)|(\*)|(\-)|(\/)
-MLCmnt \/\*(.|\n)*\*\/
+MLCmnt \/\*(.|\n)+?\*\/
 Cmnt \/\/.*
 
 %%
-{Cmnt} {numCol+=yyleng;}
+{Cmnt} {INCREMENT_NumCol;}
 {MLCmnt} {
     for(int i=0; i<yyleng; i++){
         if(yytext[i]=='\n'){
@@ -28,31 +30,31 @@ Cmnt \/\/.*
     }
 }
 
-Program {printf("Program keyword detected\n"); numCol+=yyleng;}
-PDEC {printf("PDEC keyword detected\n"); numCol+=yyleng;}
-PINST {printf("PINST keyword detected\n"); numCol+=yyleng;}
-Begin {printf("Begin keyword detected\n"); numCol+=yyleng;}
-End {printf("End keyword detected\n"); numCol+=yyleng;}
-FOR {printf("FOR keyword detected\n"); numCol+=yyleng;}
-WHILE {printf("WHILE keyword detected\n"); numCol+=yyleng;}
-DO {printf("DO keyword detected\n"); numCol+=yyleng;}
-ENDFOR {printf("ENDFOR keyword detected\n"); numCol+=yyleng;}
-IF {printf("IF keyword detected\n"); numCol+=yyleng;}
-ELSE {printf("ELSE keyword detected\n"); numCol+=yyleng;}
-ENDIF {printf("ENDIF keyword detected\n"); numCol+=yyleng;}
+Program {printf("Program keyword detected\n"); INCREMENT_NumCol;}
+PDEC {printf("PDEC keyword detected\n"); INCREMENT_NumCol;}
+PINST {printf("PINST keyword detected\n"); INCREMENT_NumCol;}
+Begin {printf("Begin keyword detected\n"); INCREMENT_NumCol;}
+End {printf("End keyword detected\n"); INCREMENT_NumCol;}
+FOR {printf("FOR keyword detected\n"); INCREMENT_NumCol;}
+WHILE {printf("WHILE keyword detected\n"); INCREMENT_NumCol;}
+DO {printf("DO keyword detected\n"); INCREMENT_NumCol;}
+ENDFOR {printf("ENDFOR keyword detected\n"); INCREMENT_NumCol;}
+IF {printf("IF keyword detected\n"); INCREMENT_NumCol;}
+ELSE {printf("ELSE keyword detected\n"); INCREMENT_NumCol;}
+ENDIF {printf("ENDIF keyword detected\n"); INCREMENT_NumCol;}
 
-"@define" {printf("define keyword detected\n"); numCol+=yyleng;}
-Pint {printf("Pint keyword was detected\n"); numCol+=yyleng;}
-Pfloat {printf("Pfloat keyword was detected\n"); numCol+=yyleng;}
+"@define" {printf("define keyword detected\n"); INCREMENT_NumCol;}
+Pint {printf("Pint keyword was detected\n"); INCREMENT_NumCol;}
+Pfloat {printf("Pfloat keyword was detected\n"); INCREMENT_NumCol;}
 
 {IDF} {
     if(yyleng <= 12){
         printf("IDF detected (%s)\n",yytext);
-        numCol+=yyleng;
+        INCREMENT_NumCol;
        
     }else{
         printf("LexicalError, Ln %d, Col %d: un identificateur '%s' ne peut pas depasser 12 caracteres\n", numLn, numCol, yytext);
-        numCol+=yyleng;
+        INCREMENT_NumCol;
         numErrors++;
     }
 }
@@ -62,7 +64,7 @@ Pfloat {printf("Pfloat keyword was detected\n"); numCol+=yyleng;}
         numErrors++;
     }else{
         printf("PintVal detected (%s)\n",yytext);
-        numCol+=yyleng;
+        INCREMENT_NumCol;
        
     }   
 }
@@ -75,35 +77,35 @@ Pfloat {printf("Pfloat keyword was detected\n"); numCol+=yyleng;}
         numErrors++;
     }else{
         printf("PfloatVal was detected (%s)\n",yytext);
-        numCol+=yyleng;
+        INCREMENT_NumCol;
        
     }
 }
 
-\( {printf("'(' detected\n"); numCol+=yyleng;}
-\) {printf("')' detected\n"); numCol+=yyleng;}
+\( {printf("'(' detected\n"); INCREMENT_NumCol;}
+\) {printf("')' detected\n"); INCREMENT_NumCol;}
 
-\| {printf("'|' detected\n"); numCol+=yyleng;}
-\& {printf("'&' detected\n"); numCol+=yyleng;}
-\! {printf("'!' detected\n"); numCol+=yyleng;}
+\| {printf("'|' detected\n"); INCREMENT_NumCol;}
+\& {printf("'&' detected\n"); INCREMENT_NumCol;}
+\! {printf("'!' detected\n"); INCREMENT_NumCol;}
 
-\> {printf("GRT detected\n"); numCol+=yyleng;}
-\>= {printf("GRT_EQ detected\n"); numCol+=yyleng;}
-\== {printf("EQ detected\n"); numCol+=yyleng;}
-\!= {printf("NOT_EQ detected\n"); numCol+=yyleng;}
-\<= {printf("LESS_EQ detected\n"); numCol+=yyleng;}
-\< {printf("LESS detected\n"); numCol+=yyleng;}
+\> {printf("GRT detected\n"); INCREMENT_NumCol;}
+\>= {printf("GRT_EQ detected\n"); INCREMENT_NumCol;}
+\== {printf("EQ detected\n"); INCREMENT_NumCol;}
+\!= {printf("NOT_EQ detected\n"); INCREMENT_NumCol;}
+\<= {printf("LESS_EQ detected\n"); INCREMENT_NumCol;}
+\< {printf("LESS detected\n"); INCREMENT_NumCol;}
 
-"<--" {printf("ASSIGN detected\n"); numCol+=yyleng;}
-\+ {printf("'+' detected\n"); numCol+=yyleng;}
-\- {printf("'-' detected\n"); numCol+=yyleng;}
-\* {printf("'*' detected\n"); numCol+=yyleng;}
-\/ {printf("'/' detected\n"); numCol+=yyleng;}
-: {printf("':' detected\n"); numCol+=yyleng;}
-; {printf("';' detected\n"); numCol+=yyleng;}
-= {printf("'=' detected\n"); numCol+=yyleng;}
+"<--" {printf("ASSIGN detected\n"); INCREMENT_NumCol;}
+\+ {printf("'+' detected\n"); INCREMENT_NumCol;}
+\- {printf("'-' detected\n"); INCREMENT_NumCol;}
+\* {printf("'*' detected\n"); INCREMENT_NumCol;}
+\/ {printf("'/' detected\n"); INCREMENT_NumCol;}
+: {printf("':' detected\n"); INCREMENT_NumCol;}
+; {printf("';' detected\n"); INCREMENT_NumCol;}
+= {printf("'=' detected\n"); INCREMENT_NumCol;}
 
-[ \t] {numCol+=yyleng;}
+[ \t] {INCREMENT_NumCol;}
 \n {numLn++; numCol=1;}
 . {
     printf("LexicalError, Ln %d, Col %d: token '%s' not recognised\n", numLn, numCol, yytext);

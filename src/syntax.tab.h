@@ -74,17 +74,16 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 26 "syntax.y"
+#line 25 "syntax.y"
 
 int pint;
 float pfloat;
 char* string;
-char caractere;
 
 
 
 /* Line 1676 of yacc.c  */
-#line 88 "syntax.tab.h"
+#line 87 "syntax.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

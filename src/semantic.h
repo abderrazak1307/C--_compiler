@@ -3,6 +3,19 @@
 #include <string.h>
 #define HighlightErrors 1
 
+/********************* Type Declaration *********************/
+typedef struct element *list;
+typedef struct element{
+    char* nom;
+    int type;
+    int nature;
+    struct element *svt;
+} element;
+
+/****************** Variable Declaration *******************/
+list SymbolTable = NULL;
+int size = 0;
+
 extern int numLn;
 extern int numCol;
 extern int numErrors;
@@ -14,21 +27,9 @@ int varRecents=0;
 double savedVal;
 int isLastReadAVal=0;
 
-// 1- Déclarer une structure de données « élément »
-typedef struct element *list;
-typedef struct element{
-    char* nom;
-    int type;
-    int nature;
-    struct element *svt;
-} element;
-
-list TS = NULL;
-int size = 0;
-
+/********************* Base Functions *********************/
 list creer_element(char* nom, int type, int nature){
     list node = (list) malloc(sizeof(element));
-    // reserver l'espace necessaire et recopier la chaine temporaire dans un noeud de la liste chainée
     node->nom = (char*)malloc((strlen(nom)+1) * sizeof(char));
     strcpy(node->nom, nom);
     node->type = type;
@@ -37,26 +38,23 @@ list creer_element(char* nom, int type, int nature){
 
     return node;
 }
-
-// 3- ajouter un element dans la liste chainée
 void insert(char* nom, int type, int nature){
     list x = creer_element(nom, type, nature);
     size++;
+    if(nature==0) varRecents++; // if inserting a variable, keep track to update type later on
     // only one item in the list
-    if (TS == NULL){
-        TS = x;
+    if (SymbolTable == NULL){
+        SymbolTable = x;
     }
     else{
-        list p = TS;
-        while (p->svt!=NULL) p = p->svt;
-        x->svt= p->svt;
-        p->svt = x;
+        list p = SymbolTable;
+        while (p->svt!=NULL) p = p->svt; // skip to last element     
+        p->svt = x; // add to end of queue
     }
 }
 
-// 4- Rechercher un élément dans la liste selon le champ « Nom »
-list rechercher(char x[100]){
-    list p = TS;
+list search(char* x){
+    list p = SymbolTable;
     list result = NULL;
     while(p!=NULL && result==NULL){
         if(strcmp(p->nom, x) == 0){
@@ -68,8 +66,8 @@ list rechercher(char x[100]){
 }
 
 void afficher(){
-    list p = TS;
-    printf("\nTable des Symboles genere:\n");
+    list p = SymbolTable;
+    printf("\n********************* Table de Symboles ********************\n");
     while (p != NULL){
         printf("%s : %s (%s)\n", p->nom, p->type==0?"Pint":"Pfloat", p->nature==0?"var":"const");
         p = p->svt;
@@ -79,7 +77,7 @@ void afficher(){
 void showLineHighlightError(int ln, int col);
 
 int checkNoDoubleDeclaration(char* variable){
-    if(rechercher(variable) != NULL){
+    if(search(variable) != NULL){
         numErrors++;
         printf("SemanticError, Ln %d, Col %d: '%s' was already declared in this scope\n", numLn, savedNumCol, variable);
         showLineHighlightError(numLn, savedNumCol);
@@ -88,7 +86,7 @@ int checkNoDoubleDeclaration(char* variable){
     return 1;
 }
 int checkNotReassigningConstant(char* variable){
-    if(rechercher(variable)->nature == 1){
+    if(search(variable)->nature == 1){
         numErrors++;
         printf("SemanticError, Ln %d, Col %d: Assignement of constant variable '%s'\n", numLn, savedNumCol, variable);
         showLineHighlightError(numLn, savedNumCol);
@@ -97,7 +95,7 @@ int checkNotReassigningConstant(char* variable){
     return 1;
 }
 int checkIsDeclared(char* variable){
-    if(rechercher(variable) == NULL){
+    if(search(variable) == NULL){
         numErrors++;
         printf("SemanticError, Ln %d, Col %d: '%s' was not declared in this scope\n", numLn, savedNumCol, variable);
         showLineHighlightError(numLn, savedNumCol);
@@ -132,16 +130,18 @@ int checkNoDivisionByZero(){
     }
     return 1;
 }
-void MAJRecentVariables(int varRecents, int decType){
-    list p = TS;
-    while (p != NULL && size-varRecents>0){
-        varRecents++;
+void MAJRecentVariables(){
+    list p = SymbolTable;
+    int i = varRecents;
+    while (p != NULL && size-i>0){
+        i++;
         p = p->svt;
     }
     while(p != NULL){
         p->type = decType;
         p = p->svt;
     }
+    varRecents=0;
 }
 
 char currentLineBuffer[256];

@@ -23,8 +23,8 @@ extern YYSTYPE yylval;
 %}
 Pint [0-9]+
 Pfloat {Pint}\.[0-9]+
-IDF ([a-z]([a-z]|[0-9]|_)*([a-z]|[0-9]))|[a-z]
-MLCmnt \/\*(.|\n)*\*\/
+IDF [a-z]([a-z]|[0-9]|_)*
+MLCmnt \/\*(.|\n)+?\*\/
 Cmnt \/\/.*
 %%
 {Cmnt} {INCREMENT_NumCol;}
@@ -54,20 +54,27 @@ ENDIF {INCREMENT_NumCol; return ENDIF;}
 Pint {INCREMENT_NumCol; return Pint;}
 Pfloat {INCREMENT_NumCol; return Pfloat;}
 {IDF} {
-    if(yyleng <= 12){
-        INCREMENT_NumCol;
-        yylval.string = strdup(yytext);
-        return IDF;
-    }else{
-        printf("LexicalError, Ln %d, Col %d: un identificateur '%s' ne peut pas depasser 12 caracteres.\n", numLn, numCol, yytext);
+    if(yyleng > 12){
+        printf("LexicalError, Ln %d, Col %d: Identifier '%s' cannot be longer than 12 characters.\n", numLn, numCol, yytext);
         showLineHighlightError(numLn, numCol);
         INCREMENT_NumCol;
         numErrors++;
     }
+    if(yytext[yyleng-1] == '_'){
+        printf("LexicalError, Ln %d, Col %d: Identifier '%s' cannot end with an underscore '_'.\n", numLn, numCol, yytext);
+        showLineHighlightError(numLn, numCol+yyleng-1);
+        INCREMENT_NumCol;
+        numErrors++;
+    }
+    if(yyleng <= 12 && yytext[yyleng-1] != '_'){
+        INCREMENT_NumCol;
+        yylval.string = strdup(yytext);
+        return IDF;
+    }
 }
 {Pint} {
     if(atoi(yytext)< -32768 || atoi(yytext) > 32767){
-        printf("LexicalError, Ln %d, Col %d: Pint '%s' a depasse l'intervalle de 32bit.\n", numLn, numCol, yytext);
+        printf("LexicalError, Ln %d, Col %d: Pint '%s' out of bounds [-32768; 32767].\n", numLn, numCol, yytext);
         showLineHighlightError(numLn, numCol);
         INCREMENT_NumCol;
         numErrors++;
@@ -79,16 +86,18 @@ Pfloat {INCREMENT_NumCol; return Pfloat;}
 }
 {Pfloat} {
     if(atof(yytext) < -32768 || atof(yytext) > 32767){
-        numErrors++;
-        printf("LexicalError, Ln %d, Col %d: Pfloat '%s' a depasse l'intervalle de 32bit.\n", numLn, numCol, yytext);
+        printf("LexicalError, Ln %d, Col %d: Pfloat '%s' out of bounds [-32768; 32767].\n", numLn, numCol, yytext);
         showLineHighlightError(numLn, numCol);
         INCREMENT_NumCol;
-    }else if(!isTwoDecimals(yytext)){
         numErrors++;
-        printf("LexicalError, Ln %d, Col %d: Pfloat '%s' ne peut pas avoir plus de 2 chiffres decimaux.\n", numLn, numCol, yytext);
+    }
+    if(!isTwoDecimals(yytext)){
+        printf("LexicalError, Ln %d, Col %d: Pfloat '%s' cannot have more than 2 decimal digits.\n", numLn, numCol, yytext);
         showLineHighlightError(numLn, numCol);
         INCREMENT_NumCol;
-    }else{
+        numErrors++;
+    }
+    if(atof(yytext) >= -32768 && atof(yytext) <= 32767 && isTwoDecimals(yytext)){
         INCREMENT_NumCol;
         yylval.pfloat = (float)atof(yytext);
         return PfloatVal;
@@ -121,7 +130,8 @@ Pfloat {INCREMENT_NumCol; return Pfloat;}
 [ \t]* {INCREMENT_NumCol;}
 \n {
     numLn++; numCol = 1;
-    yylloc.first_column = 1; yylloc.last_column = 1;
+    yylloc.first_column = 1; 
+    yylloc.last_column = 1;
 }
 . {
     numErrors++;
