@@ -450,11 +450,10 @@ extern YYLTYPE yylloc;
 extern YYSTYPE yylval;
 // on definie a USER_ACTION qui s'éxecute aprés la lecture de chaque entité
 // et cela pour garder debut et fin de chaque entité dans @n dans les régles de grammaires
-// IDF ([a-z]([a-z]|[0-9]|_)*([a-z]|[0-9]))|[a-z]
 #define YY_USER_ACTION\
   yylloc.first_column = yylloc.last_column;\
   yylloc.last_column += yyleng;
-#line 458 "lex.yy.c"
+#line 457 "lex.yy.c"
 
 /* Macros after this point can all be overridden by user definitions in
  * section 1.
@@ -605,9 +604,9 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
 
-#line 30 "lexical.l"
+#line 29 "lexical.l"
 
-#line 611 "lex.yy.c"
+#line 610 "lex.yy.c"
 
 	if ( yy_init )
 		{
@@ -692,12 +691,12 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 31 "lexical.l"
+#line 30 "lexical.l"
 {INCREMENT_NumCol;}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 32 "lexical.l"
+#line 31 "lexical.l"
 {
     for(int i=0; i<yyleng; i++){
         if(yytext[i]=='\n'){
@@ -711,82 +710,82 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 42 "lexical.l"
+#line 41 "lexical.l"
 {INCREMENT_NumCol; return Program;}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 43 "lexical.l"
+#line 42 "lexical.l"
 {INCREMENT_NumCol; return PDEC;}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 44 "lexical.l"
+#line 43 "lexical.l"
 {INCREMENT_NumCol; return PINST;}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 45 "lexical.l"
+#line 44 "lexical.l"
 {INCREMENT_NumCol; return Begin;}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 46 "lexical.l"
+#line 45 "lexical.l"
 {INCREMENT_NumCol; return End;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 47 "lexical.l"
+#line 46 "lexical.l"
 {INCREMENT_NumCol; return FOR;}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 48 "lexical.l"
+#line 47 "lexical.l"
 {INCREMENT_NumCol; return WHILE;}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 49 "lexical.l"
+#line 48 "lexical.l"
 {INCREMENT_NumCol; return DO;}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 50 "lexical.l"
+#line 49 "lexical.l"
 {INCREMENT_NumCol; return ENDFOR;}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 51 "lexical.l"
+#line 50 "lexical.l"
 {INCREMENT_NumCol; return IF;}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 52 "lexical.l"
+#line 51 "lexical.l"
 {INCREMENT_NumCol; return ELSE;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 53 "lexical.l"
+#line 52 "lexical.l"
 {INCREMENT_NumCol; return ENDIF;}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 54 "lexical.l"
+#line 53 "lexical.l"
 {INCREMENT_NumCol; return define;}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 55 "lexical.l"
+#line 54 "lexical.l"
 {INCREMENT_NumCol; return Pint;}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 56 "lexical.l"
+#line 55 "lexical.l"
 {INCREMENT_NumCol; return Pfloat;}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 57 "lexical.l"
+#line 56 "lexical.l"
 {
     if(yyleng > 12){
         printf("LexicalError, Ln %d, Col %d: Identifier '%s' cannot be longer than 12 characters.\n", numLn, numCol, yytext);
@@ -809,7 +808,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 76 "lexical.l"
+#line 75 "lexical.l"
 {
     if(atoi(yytext)< -32768 || atoi(yytext) > 32767){
         printf("LexicalError, Ln %d, Col %d: Pint '%s' out of bounds [-32768; 32767].\n", numLn, numCol, yytext);
@@ -825,7 +824,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 88 "lexical.l"
+#line 87 "lexical.l"
 {
     if(atof(yytext) < -32768 || atof(yytext) > 32767){
         printf("LexicalError, Ln %d, Col %d: Pfloat '%s' out of bounds [-32768; 32767].\n", numLn, numCol, yytext);
@@ -848,107 +847,107 @@ YY_RULE_SETUP
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 108 "lexical.l"
+#line 107 "lexical.l"
 {INCREMENT_NumCol; return '(';}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 109 "lexical.l"
+#line 108 "lexical.l"
 {INCREMENT_NumCol; return ')';}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 111 "lexical.l"
+#line 110 "lexical.l"
 {INCREMENT_NumCol; return '|';}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 112 "lexical.l"
+#line 111 "lexical.l"
 {INCREMENT_NumCol; return '&';}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 113 "lexical.l"
+#line 112 "lexical.l"
 {INCREMENT_NumCol; return '!';}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 115 "lexical.l"
+#line 114 "lexical.l"
 {INCREMENT_NumCol; return GRT;}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 116 "lexical.l"
+#line 115 "lexical.l"
 {INCREMENT_NumCol; return GRT_EQ;}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 117 "lexical.l"
+#line 116 "lexical.l"
 {INCREMENT_NumCol; return EQ;}
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 118 "lexical.l"
+#line 117 "lexical.l"
 {INCREMENT_NumCol; return NOT_EQ;}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 119 "lexical.l"
+#line 118 "lexical.l"
 {INCREMENT_NumCol; return LESS_EQ;}
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 120 "lexical.l"
+#line 119 "lexical.l"
 {INCREMENT_NumCol; return LESS;}
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 122 "lexical.l"
+#line 121 "lexical.l"
 {INCREMENT_NumCol; return ASSIGN;}
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 123 "lexical.l"
+#line 122 "lexical.l"
 {INCREMENT_NumCol; return '+';}
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 124 "lexical.l"
+#line 123 "lexical.l"
 {INCREMENT_NumCol; return '-';}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 125 "lexical.l"
+#line 124 "lexical.l"
 {INCREMENT_NumCol; return '*';}
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 126 "lexical.l"
+#line 125 "lexical.l"
 {INCREMENT_NumCol; return '/';}
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 127 "lexical.l"
+#line 126 "lexical.l"
 {INCREMENT_NumCol; return ':';}
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 128 "lexical.l"
+#line 127 "lexical.l"
 {INCREMENT_NumCol; return ';';}
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 129 "lexical.l"
+#line 128 "lexical.l"
 {INCREMENT_NumCol; return '=';}
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 131 "lexical.l"
+#line 130 "lexical.l"
 {INCREMENT_NumCol;}
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 132 "lexical.l"
+#line 131 "lexical.l"
 {
     numLn++; numCol = 1;
     yylloc.first_column = 1; 
@@ -957,7 +956,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 137 "lexical.l"
+#line 136 "lexical.l"
 {
     numErrors++;
     printf("LexicalError, Ln %d, Col %d: token '%s' not recognised.\n", numLn, numCol, yytext);
@@ -967,10 +966,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 143 "lexical.l"
+#line 142 "lexical.l"
 ECHO;
 	YY_BREAK
-#line 974 "lex.yy.c"
+#line 973 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1856,7 +1855,7 @@ int main()
 	return 0;
 	}
 #endif
-#line 143 "lexical.l"
+#line 142 "lexical.l"
 
 int isTwoDecimals(char* str){
     float v1 = (float)(atof(str)*100.0);

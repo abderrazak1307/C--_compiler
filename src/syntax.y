@@ -1,31 +1,34 @@
 %{
 #include <stdio.h>
-#include "semantic.h"
 #include <time.h>
+#include "semantic.h"
 
 clock_t start;
 FILE* inputStream;
+extern FILE* yyin;
 
 extern int numLn;
 extern int numCol;
 extern int savedNumCol;
 extern int numErrors;
-extern FILE* yyin;
 
-int yyerror(char* msg);
 extern int yylex();
 extern int yytext;
 extern int yyleng;
+int yyerror(char* msg);
 
 extern int decType;
-extern double savedVal;
-extern int isLastReadAVal;
 %}
 %locations
 %union {
-int pint;
-float pfloat;
-char* string;
+    char* string;
+    int pint;
+    float pfloat;
+    struct expressionData {
+            int type;
+            float value;
+            int hasError;
+    } expressionData;
 }
 
 %start S
@@ -34,8 +37,9 @@ char* string;
 %token<pint> PintVal //type==0
 %token<pfloat> PfloatVal //type==1
 
-%type<string> OP_Comparison '+' '-' '*' '/' '=' ASSIGN;
-%type<pint> Expression Val Type Sign;
+%type<string> OP_Comparison;
+%type<pint> Type Sign;
+%type<expressionData> Expression Val Assignement;
 
 %left '|'
 %left '&'
@@ -49,7 +53,7 @@ char* string;
 %%
 S : Header PartieDeclaration PartieInstructions {
     double duration = (1000.0*(clock() - start)) / CLOCKS_PER_SEC;
-    printf("===== Compilation finished in %.2fms with %d error(s) =====\n", duration, numErrors);
+    printf("===== Compilation finished in %.2fms with %d error(s) =====\n\n", duration, numErrors);
     afficher();
     YYACCEPT;
 };
@@ -62,19 +66,23 @@ PartieInstructions : PINST Begin Instruction End;
 
 Declaration : Declaration define Type IDF '=' Val ';' {
                 savedNumCol = @4.first_column;
-                if(!checkNoDoubleDeclaration($4)) return 1;
-
-                savedNumCol = @5.first_column;
-                if(checkTypeCompatAffect($4, $3, $6, "="))
-                    insert($4, decType, 1);
+                if(checkNoDoubleDeclaration($4)){
+                    savedNumCol = @5.first_column;
+                    if(checkTypeCompatAffect($4, $3, $6.type, "=")){
+                        insert($4, decType, 1);
+                        updateValue($4, $6.value);
+                    }
+                }
             }
             | define Type IDF '=' Val ';' {
                 savedNumCol = @3.first_column;
-                if(!checkNoDoubleDeclaration($3)) return 1;
-
-                savedNumCol = @4.first_column;
-                if(checkTypeCompatAffect($3, $2, $5, "="))
-                    insert($3, decType, 1);
+                if(checkNoDoubleDeclaration($3)){
+                    savedNumCol = @4.first_column;
+                    if(checkTypeCompatAffect($3, $2, $5.type, "=")){
+                        insert($3, decType, 1);
+                        updateValue($3, $5.value);
+                    }
+                }
             }
             | Declaration ListeIdf ':' Type ';' {
                 MAJRecentVariables();
@@ -85,13 +93,17 @@ Declaration : Declaration define Type IDF '=' Val ';' {
 
 ListeIdf : ListeIdf '|' IDF {
             savedNumCol = @3.first_column;
-            if(checkNoDoubleDeclaration($3))
-                insert($3, 0, 0);
+            if(checkNoDoubleDeclaration($3)){
+                insert($3, -1, 0);
+                updateValue($3, 0);
+            }
          }
          | IDF {
             savedNumCol = @1.first_column;
-            if(checkNoDoubleDeclaration($1))
-                insert($1, 0, 0);
+            if(checkNoDoubleDeclaration($1)){
+                insert($1, -1, 0);
+                updateValue($1, 0);
+            }
          }; 
 
 Instruction : Instruction Assignement ';'
@@ -103,14 +115,21 @@ Instruction : Instruction Assignement ';'
 
 Assignement : IDF ASSIGN Expression  {
                 savedNumCol = @1.first_column;
+                $$.type = $3.type;
+                $$.value = $3.value;
+                $$.hasError = $3.hasError;
                 if(checkIsDeclared($1)){
                     savedNumCol = @2.first_column;
-                    checkNotReassigningConstant($1);
-                    checkTypeCompatAffect($1, search($1)->type, $3, "<--");
+                    if(checkNotReassigningConstant($1) && checkTypeCompatAffect($1, search($1)->type, $3.type, "<--") && $3.hasError==0){
+                        updateValue($1, $3.value);
+                    }
                 }
             };
 
-Boucle : FOR Assignement WHILE Val DO Instruction ENDFOR;
+Boucle : FOR Assignement WHILE Val {
+            savedNumCol = @3.first_column;
+            checkTypeCompat($2.type, "WHILE", $4.type);
+        } DO Instruction ENDFOR ;
 
 DO_IF_Cond : DO Assignement ':' IF '(' Condition ')' ENDIF
            | DO Assignement ':' IF '(' Condition ')' ELSE Instruction ENDIF
@@ -125,63 +144,94 @@ Condition : '(' Condition ')'
           | Condition '|' Condition
           | Expression OP_Comparison Expression  {
               savedNumCol = @2.first_column;
-              checkTypeCompat($1, $2, $3);
+              checkTypeCompat($1.type, $2, $3.type);
           }
 
 OP_Comparison : EQ {$$="=="}| NOT_EQ {$$="!="}| GRT {$$=">"}| GRT_EQ {$$=">="}| LESS {$$="<"}| LESS_EQ {$$="<="};
 
 Expression : Val {
-        $$ = $1;
-        isLastReadAVal = 1;
+        $$.type = $1.type;
+        $$.value = $1.value;
     }
     | IDF {
-        isLastReadAVal = 0;
         savedNumCol = @1.first_column;
-        if(checkIsDeclared($1))
-            $$ = search($1)->type;
+        if(checkIsDeclared($1)){
+            $$.type = search($1)->type;
+            $$.value = searchValue($1)->value;
+            $$.hasError = 0;
+        }
     }
-    | '(' Expression ')' {$$ = $2;}
-    | Sign '(' Expression ')' {$$ = $3;}
+    | '(' Expression ')' {
+        $$.type = $2.type;
+        $$.value = $2.value;
+        $$.hasError = $2.hasError;
+    }
+    | Sign '(' Expression ')' {
+        $$.type = $3.type;
+        $$.value = ($1==0) ? $3.value : -$3.value;
+        $$.hasError = $3.hasError;
+    }
     | Expression '+' Expression {
-        $$ = $1;
         savedNumCol = @2.first_column;
-        checkTypeCompat($1, "+", $3);
+        $$.type = $1.type;
+        if(checkTypeCompat($1.type, "+", $3.type)){
+            $$.value = $1.value + $3.value;
+            $$.hasError = $1.hasError || $3.hasError;
+        }else
+            $$.hasError = 1;
     }
     | Expression '-' Expression {
-        $$ = $1;
         savedNumCol = @2.first_column;
-        checkTypeCompat($1, "-", $3);
+        $$.type = $1.type;
+        if(checkTypeCompat($1.type, "-", $3.type)){
+            $$.value = $1.value - $3.value;
+            $$.hasError = $1.hasError || $3.hasError;
+        }else
+            $$.hasError = 1;
     }
     | Expression '*' Expression {
-        $$ = $1;
         savedNumCol = @2.first_column;
-        checkTypeCompat($1, "*", $3);
+        $$.type = $1.type;
+        if(checkTypeCompat($1.type, "*", $3.type)){
+            $$.value = $1.value * $3.value;
+            $$.hasError = $1.hasError || $3.hasError;
+        }else
+            $$.hasError = 1;
+        
     }
     | Expression '/' Expression {
-        $$ = $1;
         savedNumCol = @2.first_column;
-        checkTypeCompat($1, "/", $3);
-        checkNoDivisionByZero();
+        $$.type = $1.type;
+        if(checkTypeCompat($1.type, "/", $3.type) && checkNoDivisionByZero($3.value)){
+            if($1.type == 0)$$.value = ((int)$1.value)/((int)$3.value);// division entiere
+            else $$.value = $1.value/$3.value; // division réelle
+            $$.hasError = $1.hasError || $3.hasError;
+        }else
+            $$.hasError = 1;
     };
 
 Type : Pint {$$=0; decType=0;}
      | Pfloat {$$=1; decType=1;};
 
 Val : Sign PintVal {
-        $$ = 0; 
-        savedVal = ($1==0) ? $2 : -$2;
+        $$.type = 0; 
+        $$.value = ($1==0) ? $2 : -$2;
+        $$.hasError = 0;
     }
     | PintVal {
-        $$ = 0; 
-        savedVal = $1;
+        $$.type = 0;
+        $$.value = $1;
+        $$.hasError = 0;
     }
     | Sign PfloatVal {
-        $$ = 1;
-        savedVal = ($1==0) ? $2 : -$2;
+        $$.type = 1;
+        $$.value = ($1==0) ? $2 : -$2;
+        $$.hasError = 0;
     }
     | PfloatVal {
-        $$ = 1;
-        savedVal = $1;
+        $$.type = 1;
+        $$.value = $1;
+        $$.hasError = 0;
     };
 
 Sign : '-' {$$=1;}| '+'{$$=0;};
@@ -192,7 +242,7 @@ int yyerror(char* msg){
     double s = (1000.0*(clock() - start)) / CLOCKS_PER_SEC;
     printf("SyntaxError, Ln %d, Col %d: Unexpected '%s'.\n", numLn, numCol-yyleng, yytext);
     showLineHighlightError(numLn, numCol-yyleng);
-    printf("===== Compilation stopped in %.2fms with %d error(s) =====\n", s, numErrors);
+    printf("===== Compilation stopped in %.2fms with %d error(s) =====\n\n", s, numErrors);
     return 1;
 }
 int main( int argc, char *argv[] ){
